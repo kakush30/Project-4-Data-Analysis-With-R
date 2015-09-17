@@ -1,0 +1,528 @@
+---
+title: "Red Wine Quality"
+author: "Arpit Kanodia"
+date: "August 14, 2015"
+output: word_document
+---
+```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
+library(ggplot2)
+library(dplyr)
+library(GGally)
+library(scales)
+library(memisc)
+library(reshape)
+library(gridExtra)
+```
+
+
+Importing the CSV file
+
+```{r echo=TRUE, Load_the_Data}
+# Load the Data
+dataframe <- read.csv('wineQualityReds.csv')
+```
+
+## About the Project
+
+In this project, I will explore the quality of wine wrt different properties and chemicals. I will produce the different plots, tables and numeric stats value for finally defining the results.
+
+The data wineQualityReds.csv is available on this link [here]https://www.google.com/url?q=https://s3.amazonaws.com/udacity-hosted-downloads/ud651/wineQualityReds.csv&sa=D&usg=AFQjCNFDGQM6iS1viDgkVnXfjlJUymYerA
+
+And the details about the data is available here [here]https://s3.amazonaws.com/udacity-hosted-downloads/ud651/wineQualityInfo.txt
+
+
+## Basic Details about the Dataset 
+
+Lets examine the structure and schema of dataset
+
+```{r echo=TRUE}
+str(dataframe)
+summary(dataframe)
+```
+
+As our main goal of this project is quality, it will be intresting to see statistics of only quality.
+
+```{r echo=TRUE}
+str(dataframe$quality)
+summary(dataframe$quality)
+```
+
+Some initial basic details of the dataset are observed as following:
+
+- There are 1599 obs. with 13 variables.
+- From the literature, the value of `quality` is in range of 0-10, and was rated by atleast 3 whine experts. In the dataset value range from 3-8, with median of 6 and mean at 5.636.
+- `X` appears to be a identifier for each data.
+
+```{r echo=FALSE, results='hide', basic_observations}
+#lets clean up and explore the data
+dataframe$X = factor(dataframe$X)
+
+#quality
+summary(dataframe$quality)
+table(dataframe$quality)
+
+#check the assertions
+dataframe$quality <- factor(dataframe$quality, ordered = T)
+str(dataframe$quality)
+```
+
+## Plots of Single Variables 
+
+
+
+Just to explore the data visully, I'll draw all the graphs for 12 variables quickly. The motive behind to see the distribution. 
+
+```{r echo=FALSE, message=FALSE, single_varable_plot}
+
+fixed_acidity <- qplot(dataframe$fixed.acidity, color = I('black'), fill = I('#F79420'))
+volatile_acidity <- qplot(dataframe$volatile.acidity, color = I('black'), fill = I('#F79420'))
+citric_acid <- qplot(dataframe$citric.acid, color = I('black'), fill = I('#F79420'))
+residual_sugar <- qplot(dataframe$residual.sugar, color = I('black'), fill = I('#F79420'))
+chlorides <- qplot(dataframe$chlorides, color = I('black'), fill = I('#F79420'))
+free_sulfur_dioxide <- qplot(dataframe$free.sulfur.dioxide, color = I('black'), fill = I('#F79420'))
+total_sulfur_dioxide <- qplot(dataframe$total.sulfur.dioxide, color = I('black'), fill = I('#F79420'))
+density <- qplot(dataframe$density, color = I('black'), fill = I('#F79420'))
+ph <-  qplot(dataframe$pH, color = I('black'), fill = I('#F79420'))
+sulphates <- qplot(dataframe$sulphates, color = I('black'), fill = I('#F79420'))
+alcohal <- qplot(dataframe$alcohol, color = I('black'), fill = I('#F79420'))
+quality <- qplot(dataframe$quality, color = I('black'), fill = I('#F79420'))
+
+grid.arrange(volatile_acidity,citric_acid,density,fixed_acidity,free_sulfur_dioxide,ph,quality,residual_sugar,sulphates,total_sulfur_dioxide,volatile_acidity,chlorides,ncol=4)
+```
+
+## Analysis of Single Variable 
+
+## Quality of the Wine
+
+The quality of wine is in discrete value range from 0-10 as mentioned in description text of dataset. but with graph of quality one can definetely see the quality is in between 3-8, where as most of the data lie between 5-7, with very small data at 3,4 and at 8.
+```{r echo=FALSE, message=FALSE, wine_quality_plot}
+qplot(dataframe$quality, color = I('black'), fill = I('#F79420'))
+```
+      
+For rating of wine, I thought to divide the quality into 'bad','average', 'good' and 'very good'. As the data range only from 3-8, dividing the data into 4 parameters, whereas 'very good' is non existent as there are no data for 9 and 10, is nonsensical. I finally decided to divide the data into only 3 parameters 'bad', 'average' and 'good'.
+
+```{r echo=TRUE, message=FALSE,rating}
+dataframe$rating <- ifelse(dataframe$quality < 5, 'bad', ifelse(dataframe$quality < 7, 'average', 'good'))
+dataframe$rating <- ordered(dataframe$rating,
+                     levels = c('bad', 'average', 'good'))
+summary(dataframe$rating)
+qplot(dataframe$rating, color = I('black'), fill = I('#F79420'))
+```
+
+##Analysis of Distribution
+
+- It is obviously appearing in graphs that maybe pH and density are normally distributed.
+-`Sulphur dioxide`,`sulphates`,`alcohol`, `fixed and volatile acidity` looks like to be long tailed.
+- Residual sugar and chlorides have a extreme outliers.
+- Citric acid seems to have large number of zero values.
+
+#### Log based Plots
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+ggplot(data = dataframe,
+       aes(x = fixed.acidity)) +
+  geom_histogram(color = I('black'), fill = I('#F79420')) +
+  scale_x_log10()
+
+ggplot(data = dataframe,
+       aes(x = volatile.acidity)) +
+  geom_histogram(color = I('black'), fill = I('#F79420')) +
+  scale_x_log10()
+
+ggplot(data = dataframe,
+       aes(x = citric.acid)) +
+  geom_histogram(color = I('black'), fill = I('#F79420')) +
+  scale_x_log10()
+```
+
+When plots are made on the base of log 10, `fixed.acidity` and `volatile.acidity` appeared to be normally distributed, as the pH is normally distributed which is measure of acidity in log scale. But, `citric.acid` not appeared to be normally distributed. On furthur observations.
+
+```{r}
+length(subset(dataframe, citric.acid == 0)$citric.acid)
+```
+This is clear that 132 observations are actually zero. 
+
+
+```{r echo=FALSE, message=FALSE}
+p1 <- ggplot(data = dataframe, aes(x = residual.sugar)) +
+  geom_histogram(color = I('black'), fill = I('#F79420')) + scale_x_continuous(lim = c(0, quantile(dataframe$residual.sugar, 0.95))) +
+  xlab('95th percentile trucated data of Residual Sugar')
+
+p2 <- p1 + scale_x_log10() + xlab('Log10 of 95th percentile trucated data of Residual Sugar')
+grid.arrange(p1,p2,ncol=1)
+
+p3 <- ggplot(data = dataframe, aes(x = chlorides)) +
+  geom_histogram(color = I('black'), fill = I('#F79420')) + scale_x_continuous(lim = c(0, quantile(dataframe$chlorides, 0.95))) +
+  xlab('95th percentile trucated data of Chlorides')
+
+p4 <- p3 + scale_x_log10() + xlab('Log10 of 95th percentile trucated data of Chlorides')
+grid.arrange(p3,p4,ncol=1)
+
+p5 <- ggplot(data = dataframe, aes(x = sulphates)) +
+  geom_histogram(color = I('black'), fill = I('#F79420')) + scale_x_continuous(lim = c(0, quantile(dataframe$sulphates, 0.95))) +
+  xlab('95th percentile trucated data of Sulphates')
+
+p6 <- p5 + scale_x_log10() + xlab('Log10 of 95th percentile trucated data of Sulphates')
+grid.arrange(p5,p6,ncol=1)
+
+```
+
+##Some Short Questions
+
+#### Did you create any new variables from existing variables in the dataset?
+
+Yes, `rating` based on quality is created that is bad,average and good wine. 
+
+Furthur I created a new variable for acidity, it seems like `fixed.acidity` and `volatile.acidity` caused because of different acids in the Wine. I created a new `Total.acidity` containing the sum of `fixed.acidity`,`volatile.acidity` and `citric.acidity`.
+
+```{r echo=FALSE}
+dataframe$Total.acidity <- dataframe$fixed.acidity + dataframe$volatile.acidity + dataframe$citric.acid
+qplot(dataframe$Total.acidity, color = I('black'), fill = I('#F79420'))
+```
+
+I searched on internet and I found fixed acidity caused because of tartaric, malic, citric, and succinic acids in wine. And volatile acidity causes because of acetic acid.
+
+Source:
+
+[Fixed Acidity](http://waterhouse.ucdavis.edu/whats-in-wine/fixed-acidity)
+[Volatile Acidity](http://waterhouse.ucdavis.edu/whats-in-wine/volatile-acidity)
+
+#### Of the features you investigated, were there any unusual distributions? 
+
+I investigated the distribution in above sections. For outliers I decided to plot the boxplots.
+
+####Boxplots of Single Variable
+```{r,echo=FALSE}
+boxplot_function <- function(column, ylab) {
+  return(qplot(data = dataframe, x = 'data',
+               y = column, geom = 'boxplot',
+               xlab = '',
+               ylab = ylab, color = I('black'), fill = I('#F79420')))
+}
+grid.arrange(boxplot_function(dataframe$fixed.acidity, 'fixed acidity'),
+             boxplot_function(dataframe$volatile.acidity, 'volatile acidity'),
+             boxplot_function(dataframe$citric.acid, 'citric acid'),
+             boxplot_function(dataframe$Total.acidity, 'Total Acidity'),
+             boxplot_function(dataframe$residual.sugar, 'residual sugar'),
+             boxplot_function(dataframe$chlorides, 'chlorides'),
+             boxplot_function(dataframe$free.sulfur.dioxide, 'free sulf. dioxide'),
+             boxplot_function(dataframe$total.sulfur.dioxide, 'total sulf. dioxide'),
+             boxplot_function(dataframe$density, 'density'),
+             boxplot_function(dataframe$pH, 'pH'),
+             boxplot_function(dataframe$sulphates, 'sulphates'),
+             boxplot_function(dataframe$alcohol, 'alcohol'),
+             ncol = 4)
+
+```
+
+####Boxplots for Two variable (Quality V/S Different Variables)
+```{r,echo=FALSE}
+two_variable_boxplot <- function(x, y, xlab ,ylab) {
+  return(qplot(data = dataframe, x = x, y = y, geom = 'boxplot', ylab = ylab, xlab=xlab,color = I('black'), fill = I('#F79420')))
+}
+grid.arrange(two_variable_boxplot(dataframe$quality, dataframe$fixed.acidity,'Quality','fixed acidity'),
+             two_variable_boxplot(dataframe$quality, dataframe$volatile.acidity,
+                                   'Quality','volatile acidity'),
+             two_variable_boxplot(dataframe$quality, dataframe$citric.acid,
+                                   'Quality','citric acid'),
+             two_variable_boxplot(dataframe$quality, dataframe$Total.acidity,
+                                   'Quality','Total acidity'),
+             two_variable_boxplot(dataframe$quality, log10(dataframe$residual.sugar),
+                                   'Quality','residual sugar'),
+             two_variable_boxplot(dataframe$quality, log10(dataframe$chlorides),
+                                   'Quality','chlorides'),
+             two_variable_boxplot(dataframe$quality, dataframe$free.sulfur.dioxide,
+                                   'Quality','free SO2'),
+             two_variable_boxplot(dataframe$quality, dataframe$total.sulfur.dioxide,
+                                   'Quality','total SO2'),
+             two_variable_boxplot(dataframe$quality, dataframe$density,
+                                   'Quality','density'),
+             two_variable_boxplot(dataframe$quality, dataframe$pH,
+                                   'Quality','pH'),
+             two_variable_boxplot(dataframe$quality, log10(dataframe$sulphates),
+                                   'Quality','sulphates'),
+             two_variable_boxplot(dataframe$quality, dataframe$alcohol,
+                                   'Quality','alcohol'),
+             ncol = 4)
+```
+
+####Boxplots for Two variable (Rating V/S Different Variables)
+
+```{r,echo=FALSE}
+grid.arrange(two_variable_boxplot(dataframe$rating, dataframe$fixed.acidity,
+                                   'Rating','fixed acidity'),
+             two_variable_boxplot(dataframe$rating, dataframe$volatile.acidity,
+                                    'Rating','volatile acidity'),
+             two_variable_boxplot(dataframe$rating, dataframe$citric.acid,
+                                    'Rating','citric acid'),
+             two_variable_boxplot(dataframe$rating, dataframe$Total.acidity,
+                                    'Rating','Total acidity'),
+             two_variable_boxplot(dataframe$rating, log10(dataframe$residual.sugar),
+                                    'Rating','residual sugar'),
+             two_variable_boxplot(dataframe$rating, log10(dataframe$chlorides),
+                                    'Rating','chlorides'),
+             two_variable_boxplot(dataframe$rating, dataframe$free.sulfur.dioxide,
+                                    'Rating','free SO2'),
+             two_variable_boxplot(dataframe$rating, dataframe$total.sulfur.dioxide,
+                                    'Rating','total SO2'),
+             two_variable_boxplot(dataframe$rating, dataframe$density,
+                                    'Rating','density'),
+             two_variable_boxplot(dataframe$rating, dataframe$pH,
+                                    'Rating','pH'),
+             two_variable_boxplot(dataframe$rating, log10(dataframe$sulphates),
+                                    'Rating','sulphates'),
+             two_variable_boxplot(dataframe$rating, dataframe$alcohol,
+                                   'Rating','alcohol'),
+             ncol = 4)
+
+```
+
+#### Analysis of Boxplots
+
+By examining the plots, some conclusions can be drawn:
+
+```{r,echo=FALSE}
+two_variable_boxplot(dataframe$rating, dataframe$fixed.acidity,
+                                   'Rating','fixed acidity')
+```
+
+- A `good` wine causes because of high `fixed.acidity` (tartaric, malic, citric, and succinic acids).
+
+```{r,echo=FALSE}
+two_variable_boxplot(dataframe$rating, dataframe$citric.acid,
+                                    'Rating','citric acid')
+```
+
+- A `good` wine causes because of high `citric.acid`.
+
+```{r,echo=FALSE}
+two_variable_boxplot(dataframe$rating, dataframe$volatile.acidity,
+                                    'Rating','volatile acidity')
+```
+
+- A `good` wine causes because of low `volatile.acidity`(acetic acid).
+
+```{r,echo=FALSE}
+two_variable_boxplot(dataframe$rating, dataframe$pH,
+                                    'Rating','pH')
+```
+
+- A `good` wine causes because of lower `pH` value, means higher acidity.
+
+```{r,echo=FALSE}
+two_variable_boxplot(dataframe$rating, log10(dataframe$sulphates),
+                                    'Rating','sulphates')
+```
+
+- A `good` wine causes because of higher `sulphates`.
+
+```{r,echo=FALSE}
+two_variable_boxplot(dataframe$rating, log10(dataframe$sulphates),
+                                    'Rating','alcohal')
+```
+
+- A `good` wine causes because of higher `alcohal`.
+- Little bit, lesser `chlorides` and `density` also affect the wine quality.
+- `SO2` and `Residual Sugar` donot seems to have any affect on wine quality.
+
+#### Correlation in between Quality and Different Variables
+
+```{r,echo=FALSE}
+
+correlation_test <- function(x, y) {
+  return(cor.test(x, as.numeric(y),method = 'pearson')$estimate)
+}
+  correlations <- c( 
+  correlation_test(dataframe$fixed.acidity, dataframe$quality),
+  correlation_test(dataframe$volatile.acidity, dataframe$quality),
+  correlation_test(dataframe$citric.acid, dataframe$quality),
+  correlation_test(dataframe$Total.acidity, dataframe$quality),
+  correlation_test(log10(dataframe$residual.sugar), dataframe$quality),
+  correlation_test(log10(dataframe$chlorides), dataframe$quality),
+  correlation_test(dataframe$free.sulfur.dioxide, dataframe$quality),
+  correlation_test(dataframe$total.sulfur.dioxide, dataframe$quality),
+  correlation_test(dataframe$density, dataframe$quality),
+  correlation_test(dataframe$pH, dataframe$quality),
+  correlation_test(log10(dataframe$sulphates), dataframe$quality),
+  correlation_test(dataframe$alcohol, dataframe$quality))
+  
+  names(correlations) <- c('fixed.acidity', 'volatile.acidity', 'citric.acid',
+                         'Total.acidity', 'log10.residual.sugar',
+                         'log10.chlordies', 'free.SO2',
+                         'total.SO2', 'density', 'pH',
+                         'log10.sulphates', 'alcohol')
+  correlations
+```
+
+Strong Correlation found in quality and 
+
+- Alcohal
+- Volatile Acidity
+- Log10 of Sulphates
+- Citric Acid
+
+#### Scatter Plot
+
+```{r echo=FALSE}
+  ggplot(data = dataframe, aes(x = log10(sulphates), y = alcohol)) +
+  facet_wrap(~rating) +
+  geom_point(color = 'orange')
+  cor.test(log10(dataframe$sulphates), dataframe$alcohol)
+  
+  ggplot(data = dataframe, aes(x = volatile.acidity, y = alcohol)) +
+  facet_wrap(~rating) +
+  geom_point(color = 'orange')
+  cor.test(dataframe$volatile.acidity, dataframe$alcohol)
+  
+  ggplot(data = dataframe, aes(x = citric.acid, y = alcohol)) +
+  facet_wrap(~rating) +
+  geom_point(color = 'orange')
+  cor.test(dataframe$citric.acid, dataframe$alcohol)
+  
+
+  ggplot(data = dataframe, aes(x = volatile.acidity, y = log10(sulphates))) +
+  facet_wrap(~rating) +
+  geom_point(color = 'orange')
+  cor.test(dataframe$volatile.acidity, log10(dataframe$sulphates))
+  
+
+  ggplot(data = dataframe, aes(x = citric.acid, y = log10(sulphates))) +
+  facet_wrap(~rating) +
+  geom_point(color = 'orange')
+  cor.test(dataframe$citric.acid, log10(dataframe$sulphates))
+
+  ggplot(data = dataframe, aes(x = citric.acid, y = volatile.acidity)) +
+  facet_wrap(~rating) +
+  geom_point(color = 'orange')
+  cor.test(dataframe$citric.acid, dataframe$volatile.acidity)
+  
+  ggplot(data = dataframe, aes(x = fixed.acidity, y = citric.acid)) +
+  geom_point(color = 'orange')
+  cor.test(dataframe$fixed.acidity, dataframe$citric.acid)
+
+  ggplot(data = dataframe, aes(x = volatile.acidity, y = citric.acid)) +
+  geom_point(color = 'orange')
+  cor.test(dataframe$volatile.acidity, dataframe$citric.acid)
+
+  ggplot(data = dataframe, aes(x = log10(Total.acidity), y = pH)) +
+  geom_point(color = 'orange')
+  cor.test(log10(dataframe$Total.acidity), dataframe$pH)
+  
+  ggplot(data = dataframe, aes(x = free.sulfur.dioxide, y = total.sulfur.dioxide)) +
+  geom_point(color = 'orange')
+  cor.test(log10(dataframe$free.sulfur.dioxide), dataframe$total.sulfur.dioxide)
+```  
+
+I found very strong correlation between `Total.acidity` and `pH`, and the strongest correlation after that is between `free.SO2` and `total.SO2`. 
+
+This is obvious that the strong correlation found in Acidity and pH because of pH is inversely proportional to acidity. One question need to ask what other components affecting pH other than acids. We can see this difference by building a linear model.
+
+#### Errors in between Observerd pH and Predictive pH
+```{r echo=TRUE,warning=FALSE}
+
+m <- lm((pH) ~ log10(Total.acidity),data=dataframe)
+dataframe$pH.predictions <- predict(m, dataframe)  
+dataframe$pH.error <- ((dataframe$pH.predictions - dataframe$pH)/dataframe$pH)*100
+qplot(data = dataframe, x = dataframe$quality, y = dataframe$pH.error, geom = 'boxplot', ylab = 'pH Error(in %)', xlab= 'Quality',color = I('black'), fill = I('#F79420')) + scale_y_continuous(limits = c(-10,10), breaks = seq(-10,10,1))
+
+```  
+  
+The median % error in all cases remain somewhere close to 0 except in quality of 3. The median % of error of quality of 3 is at slightly lower than negative 4%. In this case we can conclude, the acids are not performing well in this case, or error is caused because of impurity in Acids.
+
+
+# Summary and Plots
+
+## Effect of acids on Wine
+
+```{r echo=FALSE, Final_plot_one}
+
+grid.arrange(ggplot(data = dataframe, aes(x = quality, y = fixed.acidity,
+                                   color = quality)) + 
+               ylab('Fixed Acidity (g/dm^3)') +
+               xlab('Quality') +
+               geom_boxplot(),
+             ggplot(data = dataframe, aes(x = quality, y = volatile.acidity,
+                                   color = quality)) +
+               ylab('Volatile Acidity (g/dm^3)') +
+               xlab('Quality') +
+               geom_boxplot(), 
+             ggplot(data = dataframe, aes(x = quality, y = citric.acid,
+                                   color = quality)) +
+               ylab('Citric Acid (g/dm^3)') +
+               xlab('Quality') +
+               geom_boxplot(), 
+             ggplot(data = dataframe, aes(x = quality, y = pH,
+                                   color = quality)) +
+               ylab('pH') +
+               xlab('Quality') +
+               geom_boxplot())
+             
+             grid.arrange(ggplot(data = dataframe, aes(x = rating, y = fixed.acidity,
+                                   fill = rating)) + 
+               ylab('Fixed Acidity (g/dm^3)') +
+               xlab('Rating') +
+               geom_boxplot(),
+             ggplot(data = dataframe, aes(x = rating, y = volatile.acidity,
+                                   fill = rating)) +
+               ylab('Volatile Acidity (g/dm^3)') +
+               xlab('Rating') +
+               geom_boxplot(), 
+             ggplot(data = dataframe, aes(x = rating, y = citric.acid,
+                                   fill = rating)) +
+               ylab('Citric Acid (g/dm^3)') +
+               xlab('Rating') +
+               geom_boxplot(), 
+             ggplot(data = dataframe, aes(x = rating, y = pH,
+                                   fill = rating)) +
+               ylab('pH') +
+               xlab('Rating') +
+               geom_boxplot())
+```
+
+#### Conclusions on effect of acidity on Wine
+
+- There is little effect of Fixed acidity on Wine. But lower than 8 g/dm^3 acetic acid can cause a wine to be a `bad` wine, and a slight larger value than 8 g/dm^3 acetic acid can convert a wine into a `good` wine. 
+
+- Volatile acidity which causes because of tartaric, malic, citric, and succinic acids should be slightly below 0.4 g/dm^3.
+
+- If Citric acid is closer to 0 g/dm^3, then this can cause a wine to be `bad`. A value between 0.25-0.50 g/dm^3 is required for `good` wine.
+
+- For a `good` wine pH value should be in between 3-3.5, but a closer value to 3.5 can cause a wine to be `bad`.
+
+## Effects of Alcohol on Wine Quality
+
+```{r echo=FALSE, Final_plot_two}
+grid.arrange(ggplot(data = dataframe, aes(x = quality, y = alcohol,
+                      color = quality)) +
+  geom_boxplot() +
+  xlab('Quality') +
+  ylab('Alcohol (% volume)'),ggplot(data = dataframe, aes(x = rating, y = alcohol,
+                      fill = rating)) +
+  geom_boxplot() +
+  xlab('Rating') +
+  ylab('Alcohol (% volume)'))
+```  
+  
+The boxplot show a higher quantity of alcohol may cause a `good` quality wine. But, as the outliners show, alchohol content alone didnot produce high quality wine.
+
+## What is the actual difference in Bad and Good Wine
+
+To understand this, I removed `average` rating from plot.
+
+```{r echo=FALSE, Plot_Three}
+ggplot(data = subset(dataframe, rating != 'average'),
+       aes(x = volatile.acidity, y = alcohol,
+                      color = rating)) +
+  geom_point() + 
+    geom_line(x=0.45,linetype=2,color='orange')+
+    xlab('Volatile Acidity (g / dm^3)') +
+  ylab('Alcohol (% volume)')
+```
+  
+  
+- From this plot, this can be concluded the `good` wine creating a cluster when quantity of volatile.acidity is low and quantity of alcohal is high compare to `bad` wine (except some cases).
+- The best way to make a `good` wine can be keeping volatile.acidity low and keeping alcohol high.
+
+#Final Reflection
+
+I was able to determine which factor affect the wine quality most i.e alcohol, sulphates and acidity. Important note is that quality or rating is subjective manner, and can change from person to person. The above graphs described what makes a wine `good`. Furthur statistical study can also lead to confirm these conclusions.
