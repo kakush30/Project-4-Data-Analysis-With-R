@@ -2,7 +2,7 @@
 title: "Red Wine Quality"
 author: "Arpit Kanodia"
 date: "August 14, 2015"
-output: html_document
+output: word_document
 ---
 ```{r echo=FALSE, message=FALSE, warning=FALSE, packages}
 library(ggplot2)
