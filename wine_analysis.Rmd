@@ -143,7 +143,7 @@ qplot(dataframe$rating, color = I('black'),fill = I('#F79420'))
 
 #### Log based Plots
 
-To furthur analyze the distribution, log10 based transformation is required.
+To furthur analyze the distribution, log10 based transformation is required. 
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(data = dataframe,
@@ -156,6 +156,11 @@ ggplot(data = dataframe,
   geom_histogram(color = I('black'), fill = I('#F79420')) +
   scale_x_log10()
 
+```
+
+- It looks like the `log(fixed.acidity)` and `log(volatile.acidity)` atleast are more bell-shaped than normal plots.  
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 ggplot(data = dataframe,
        aes(x = citric.acid)) +
   geom_histogram(color = I('black'), fill = I('#F79420')) +
@@ -169,41 +174,32 @@ length(subset(dataframe, citric.acid == 0)$citric.acid)
 ```
 This is clear that 132 observations are actually zero. 
 
+- For furthur investigation, in normal histograms `residual.sugar`, `sulphates` and `chlorides` seems to be highly right skewed. 
 
 ```{r echo=FALSE, message=FALSE}
-p1 <- ggplot(data = dataframe, aes(x = residual.sugar)) +
-  geom_histogram(color = I('black'), fill = I('#F79420')) + 
-  scale_x_continuous(lim = c(0,quantile(dataframe$residual.sugar, 0.95))) +
-  xlab('95th percentile trucated data of Residual Sugar')
 
-p2 <- p1 + scale_x_log10() + 
-  xlab('Log10 of 95th percentile trucated data of Residual Sugar')
+ggplot(data = dataframe,
+       aes(x = residual.sugar)) +
+  geom_histogram(color = I('black'), fill = I('#F79420')) +
+  scale_x_log10()
 
-grid.arrange(p1,p2,ncol=1)
+ggplot(data = dataframe,
+       aes(x = sulphates)) +
+  geom_histogram(color = I('black'), fill = I('#F79420')) +
+  scale_x_log10()
 
-p3 <- ggplot(data = dataframe, aes(x = chlorides)) +
-  geom_histogram(color = I('black'), fill = I('#F79420')) + 
-  scale_x_continuous(lim = c(0, quantile(dataframe$chlorides, 0.95))) +
-  xlab('95th percentile trucated data of Chlorides')
-
-p4 <- p3 + scale_x_log10() + 
-  xlab('Log10 of 95th percentile trucated data of Chlorides')
-
-grid.arrange(p3,p4,ncol=1)
-
-p5 <- ggplot(data = dataframe, aes(x = sulphates)) +
-  geom_histogram(color = I('black'), fill = I('#F79420'))  +    scale_x_continuous(lim = c(0, quantile(dataframe$sulphates, 0.95))) +
-  xlab('95th percentile trucated data of Sulphates')
-
-p6 <- p5 + scale_x_log10() + 
-  xlab('Log10 of 95th percentile trucated data of Sulphates')
-grid.arrange(p5,p6,ncol=1)
+ggplot(data = dataframe,
+       aes(x = chlorides)) +
+  geom_histogram(color = I('black'), fill = I('#F79420')) +
+  scale_x_log10()
 
 ```
 
+- After log transformation `residual.sugar`, `sulphates` and `chlorides` looks in bell shape and normally distributed.
+
 ##Checking the Overall picture of Dataset 
 
-```{r echo=FALSE, warning=FALSE}
+```{r echo=FALSE, warning=FALSE,fig.height=8,fig.width=9}
 wine_tmp = dataframe[,2:13]
 colnames(wine_tmp) = c("Fix.Ac", 
                        "Vol.Ac", 
@@ -217,7 +213,7 @@ colnames(wine_tmp) = c("Fix.Ac",
                        "pH", "SO4", 
                        "Alc",
                        "Quality")
-suppressMessages(ggpairs(wine_tmp,  params=list(size=2,binwidth=5)) + 
+suppressMessages(ggpairs(wine_tmp,  params=list(size=4,binwidth=5)) + 
   theme(axis.text = element_blank()))
 
 rm(wine_tmp)
@@ -225,6 +221,10 @@ rm(wine_tmp)
 
 
 ```
+
+- A strong correlation found in fixed.acidity and pH.
+- A high correlation in volatile acidity and citric.
+- A strong correlation between free.SO2 and SO2
 
 
 ##Some Short Questions
@@ -283,10 +283,78 @@ grid.arrange(boxplot_function(dataframe$fixed.acidity, 'fixed acidity'),
              boxplot_function(dataframe$alcohol, 'alcohol'),
              ncol = 4)
 
+ mean_data <- c( 
+  mean(dataframe$fixed.acidity),
+  mean(dataframe$volatile.acidity),
+  mean(dataframe$citric.acid),
+  mean(dataframe$Total.acidity),
+  mean(dataframe$residual.sugar),
+  mean(dataframe$chlorides),
+  mean(dataframe$free.sulfur.dioxide),
+  mean(dataframe$total.sulfur.dioxide),
+  mean(dataframe$density),
+  mean(dataframe$pH),
+  mean(dataframe$sulphates),
+  mean(dataframe$alcohol))
+ 
+
+  
+  names(mean_data) <- c('fixed.acidity', 
+                           'volatile.acidity', 
+                           'citric.acid',
+                           'Total.acidity', 
+                           'residual.sugar',
+                           'chlordies', 
+                           'free.SO2',
+                           'total.SO2', 
+                           'density', 
+                           'pH',
+                           'sulphates', 
+                           'alcohol')
+  
+  median_data <- c( 
+  median(dataframe$fixed.acidity),
+  median(dataframe$volatile.acidity),
+  median(dataframe$citric.acid),
+  median(dataframe$Total.acidity),
+  median(dataframe$residual.sugar),
+  median(dataframe$chlorides),
+  median(dataframe$free.sulfur.dioxide),
+  median(dataframe$total.sulfur.dioxide),
+  median(dataframe$density),
+  median(dataframe$pH),
+  median(dataframe$sulphates),
+  median(dataframe$alcohol))
+  
+  names(median_data) <- c('fixed.acidity', 
+                           'volatile.acidity', 
+                           'citric.acid',
+                           'Total.acidity', 
+                           'residual.sugar',
+                           'chlordies', 
+                           'free.SO2',
+                           'total.SO2', 
+                           'density', 
+                           'pH',
+                           'sulphates', 
+                           'alcohol')
+```  
+
+####Mean 
+
+```{r,echo=FALSE}
+  mean_data
+```
+
+####Median
+
+```{r,echo=FALSE}
+  median_data
+
 ```
 
 ####Boxplots for Two variable (Quality V/S Different Variables)
-```{r,echo=FALSE}
+```{r,echo=FALSE,fig.width= 8}
 # Creating Boxplot Function for Two Variables
 
 two_variable_boxplot <- function(x, y, xlab ,ylab) {
@@ -333,7 +401,7 @@ grid.arrange(two_variable_boxplot(dataframe$quality, dataframe$fixed.acidity,'Qu
 
 ####Boxplots for Two variable (Rating V/S Different Variables)
 
-```{r,echo=FALSE}
+```{r,echo=FALSE,fig.width= 9}
 grid.arrange(two_variable_boxplot(dataframe$rating, 
                                   dataframe$fixed.acidity,
                                    'Rating','fixed acidity'),
@@ -376,11 +444,24 @@ grid.arrange(two_variable_boxplot(dataframe$rating,
 #### Analysis of Boxplots
 
 By examining the plots, some conclusions can be drawn:
+```{r,echo=FALSE}
+meadian_two_variable <- function(df) {
+  med <- c(median(df[dataframe$rating == 'bad']),
+                  median(df[dataframe$rating == 'average']),
+                  median(df[dataframe$rating == 'good']))
+  
+names(med) <- c('bad',
+                'average',
+                'good')
+return(med)
+  }
+```
 
 ```{r,echo=FALSE}
 two_variable_boxplot(dataframe$rating, 
                      dataframe$fixed.acidity,
                      'Rating','fixed acidity')
+meadian_two_variable(dataframe$fixed.acidity)
 ```
 
 - A `good` wine causes because of high `fixed.acidity` (tartaric, malic, citric, and succinic acids).
@@ -389,6 +470,7 @@ two_variable_boxplot(dataframe$rating,
 two_variable_boxplot(dataframe$rating, 
                      dataframe$citric.acid,
                     'Rating','citric acid')
+meadian_two_variable(dataframe$citric.acid)
 ```
 
 - A `good` wine causes because of high `citric.acid`.
@@ -397,6 +479,7 @@ two_variable_boxplot(dataframe$rating,
 two_variable_boxplot(dataframe$rating, 
                      dataframe$volatile.acidity,
                     'Rating','volatile acidity')
+meadian_two_variable(dataframe$volatile.acidity)
 ```
 
 - A `good` wine causes because of low `volatile.acidity`(acetic acid).
@@ -405,6 +488,7 @@ two_variable_boxplot(dataframe$rating,
 two_variable_boxplot(dataframe$rating, 
                      dataframe$pH,
                      'Rating','pH')
+meadian_two_variable(dataframe$pH)
 ```
 
 - A `good` wine causes because of lower `pH` value, means higher acidity.
@@ -413,14 +497,16 @@ two_variable_boxplot(dataframe$rating,
 two_variable_boxplot(dataframe$rating, 
                      log10(dataframe$sulphates),
                      'Rating','sulphates')
+meadian_two_variable(log10(dataframe$sulphates))
 ```
 
-- A `good` wine causes because of higher `sulphates`.
+- A `good` wine causes because of lower `sulphates`.
 
 ```{r,echo=FALSE}
 two_variable_boxplot(dataframe$rating, 
-                     log10(dataframe$sulphates),
+                     dataframe$alcohol,
                      'Rating','alcohal')
+meadian_two_variable(dataframe$alcohol)
 ```
 
 - A `good` wine causes because of higher `alcohal`.
@@ -575,30 +661,7 @@ The median % error in all cases remain somewhere close to 0 except in quality of
 
 ```{r echo=FALSE, Final_plot_one}
 
-grid.arrange(ggplot(data = dataframe, aes(x = quality, 
-                                          y = fixed.acidity,
-                                   color = quality)) + 
-               ylab('Fixed Acidity (g/dm^3)') +
-               xlab('Quality') +
-               geom_boxplot(),
-             ggplot(data = dataframe, aes(x = quality, 
-                                          y = volatile.acidity,
-                                   color = quality)) +
-               ylab('Volatile Acidity (g/dm^3)') +
-               xlab('Quality') +
-               geom_boxplot(), 
-             ggplot(data = dataframe, aes(x = quality,
-                                          y = citric.acid,
-                                   color = quality)) +
-               ylab('Citric Acid (g/dm^3)') +
-               xlab('Quality') +
-               geom_boxplot(), 
-             ggplot(data = dataframe, aes(x = quality, 
-                                          y = pH,
-                                   color = quality)) +
-               ylab('pH') +
-               xlab('Quality') +
-               geom_boxplot())
+
              
              grid.arrange(ggplot(data = dataframe, aes(x = rating, 
                                                        y = fixed.acidity,
@@ -691,7 +754,7 @@ ggplot(data= dataframe, aes(x=as.factor(dataframe$quality) , fill = dataframe$Al
 ```
 
 
-For plotting this, we divided the data into 3 section according to % of Alcohol according to this
+For plotting this, I divided the data into 3 section according to % of Alcohol according to this
 
 - `Low` with less than 9.5%
 - `Moderate` with inbetween 9.5 and 12%
@@ -706,7 +769,7 @@ The findings for `Good` Wine as follows.
 - A wine with greater 8 g/dm3 acetic acid (Fixed Acid) can cause a good wine.
 - Volatile acid should be remain below 0.4 g/dm3.
 - Citric Acid should be at 0.25-050 g/dm3.
-- I dont able to find much difference of pH value in `bad` and `good` wine. But the value should be closer to 3.5
+- I dont able to find much difference of pH value in `bad` and `good` wine. But the value should be closer to 3.25
 - Alcohol % should be above 9.5%
 
 
@@ -719,7 +782,7 @@ I never done the statistical analysis from boxplot before, it took me time to un
 Furthur in most of the links, like this [Link](http://www.realsimple.com/holidays-entertaining/entertaining/food-drink/alcohol-content-wine), I found a Strong/High Wine is called when Alcohol % is called when wine is above 14.5%. But I found 0 data which is above 14.5%. I searched pretty hard then I found some 10 years ago, above 12% was considered as Strong Wine.
 
 This is possible the dataset is old, or dataset is made from old parameters of wine.
-I furthur faced many problems in many functions of R, as is grid.arrange, gridarrange and in creating functions. I pretty worked hard in understanding this in [stackoverflow](http://stackoverflow.com/).
+I furthur faced many problems in many functions of R, as is grid.arrange and in creating functions. I pretty worked hard in understanding this in [stackoverflow](http://stackoverflow.com/).
 
 On other note, the dataset is from which country is not defined. The various parameters defined differently in different country. Demographically and ethinically, a wine which is `bad` for one maybe `good` for other. For example, a French can rate a wine as `good` but a person from US maybe rate the same wine as `bad`.
 
